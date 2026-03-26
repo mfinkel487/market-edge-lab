@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Edge Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080b0f;
+  --border: rgba(255,255,255,0.07);
+  --green: #00e87a;
+  --yellow: #f5c842;
+  --red: #ff3d5a;
+  --muted: #4a5568;
+  --text: #c8d4e0;
+  --dim: #2d3748;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;font-size:13px;line-height:1.6;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,232,122,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,232,122,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+header{padding:36px 0 28px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:32px;}
+.eyebrow{font-size:10px;letter-spacing:0.22em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+h1{font-family:'Instrument Serif',serif;font-size:30px;font-weight:400;color:#fff;letter-spacing:-0.02em;}
+h1 em{color:var(--green);font-style:italic;}
+.ticker-form{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.ticker-form input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:8px 14px;color:#fff;font-family:'DM Mono',monospace;font-size:14px;width:100px;text-transform:uppercase;outline:none;transition:border-color 0.2s;}
+.ticker-form input:focus{border-color:rgba(0,232,122,0.45);}
+.btn-load{background:var(--green);color:#000;border:none;border-radius:7px;padding:8px 18px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.08em;cursor:pointer;transition:opacity 0.15s,transform 0.1s;}
+.btn-load:hover{opacity:0.85;}
+.btn-load:active{transform:scale(0.97);}
+.btn-load:disabled{opacity:0.4;cursor:not-allowed;}
+.status{font-size:12px;padding:10px 14px;border-radius:8px;margin-bottom:24px;display:none;}
+.status.show{display:block;}
+.status.loading{color:var(--muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);}
+.status.error{color:var(--red);background:rgba(255,61,90,0.07);border:1px solid rgba(255,61,90,0.2);}
+.status.info{color:var(--muted);background:transparent;border:none;padding:0;margin-bottom:12px;}
+.panel{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:20px;animation:fadeUp 0.35s ease both;}
+.panel-label{font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--muted);margin-bottom:18px;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.row:last-child{margin-bottom:0;}
+.row-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;min-width:40px;}
+.row-label.g{color:var(--green);}
+.row-label.y{color:var(--yellow);}
+.sep{color:var(--muted);}
+.day-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.day-btn{padding:5px 11px;border-radius:6px;border:1px solid var(--dim);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.15s;}
+.day-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.day-btn.ag{border-color:var(--green);background:rgba(0,232,122,0.1);color:var(--green);font-weight:500;}
+.day-btn.ay{border-color:var(--yellow);background:rgba(245,200,66,0.1);color:var(--yellow);font-weight:500;}
+select{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;cursor:pointer;}
+.result-panel{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:20px;transition:border-color 0.3s;animation:fadeUp 0.35s ease both;}
+.result-panel.high{border-color:rgba(0,232,122,0.25);}
+.result-panel.low{border-color:rgba(255,61,90,0.2);}
+.result-sentence{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.7;}
+.result-sentence .hl{color:var(--text);}
+.result-sentence .gn{color:var(--green);}
+.result-sentence .yn{color:var(--yellow);}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:600px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+.stat-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 16px;}
+.s-label{font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:6px;}
+.s-value{font-family:'Instrument Serif',serif;font-size:30px;line-height:1;color:#fff;}
+.s-sub{font-size:10px;color:var(--muted);margin-top:4px;}
+.edge-row{display:flex;gap:12px;align-items:center;}
+.edge-label{font-size:10px;color:var(--muted);white-space:nowrap;}
+.edge-track{flex:1;height:6px;background:rgba(255,255,255,0.04);border-radius:99px;position:relative;overflow:hidden;}
+.edge-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.12);}
+.edge-fill{position:absolute;top:0;bottom:0;border-radius:99px;transition:all 0.5s cubic-bezier(0.34,1.56,0.64,1);}
+.edge-val{font-size:11px;white-space:nowrap;min-width:44px;text-align:right;}
+.warn{margin-top:14px;font-size:11px;color:#c47a1a;background:rgba(255,150,50,0.07);padding:8px 12px;border-radius:7px;border:1px solid rgba(255,150,50,0.15);}
+.no-data{color:var(--muted);font-size:13px;}
+.matrix-wrap{background:rgba(255,255,255,0.015);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;animation:fadeUp 0.35s ease both;}
+.matrix-toggle{width:100%;background:none;border:none;border-bottom:1px solid transparent;display:flex;justify-content:space-between;align-items:center;padding:18px 28px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color 0.15s;}
+.matrix-toggle:hover{color:var(--text);}
+.matrix-toggle.open{border-bottom-color:var(--border);}
+.matrix-body{display:none;padding:20px 28px 28px;overflow-x:auto;}
+.matrix-body.open{display:block;}
+table{border-collapse:collapse;width:100%;}
+th,td{padding:8px 10px;text-align:center;}
+th{font-size:10px;color:var(--muted);font-weight:400;letter-spacing:0.1em;}
+th:first-child{text-align:left;}
+td{font-size:12px;border-radius:5px;cursor:pointer;transition:background 0.1s;}
+td:first-child{text-align:left;color:var(--green);font-size:11px;cursor:default;}
+.c-high{color:var(--green);}
+.c-low{color:var(--red);}
+.c-mid{color:var(--muted);}
+.c-none{color:var(--dim);}
+.c-sel{outline:1px solid rgba(245,200,66,0.5);background:rgba(245,200,66,0.06)!important;}
+td:not(:first-child):hover{background:rgba(255,255,255,0.04);}
+.n-count{font-size:9px;color:var(--dim);display:block;}
+.limit-note{font-size:11px;color:var(--muted);margin-bottom:20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid var(--dim);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite;margin-right:8px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Weekly Pattern Analyzer</div>
+      <h1>Market Edge <em>Lab</em></h1>
+    </div>
+    <div class="ticker-form">
+      <input type="text" id="tickerInput" value="VOO" maxlength="10" placeholder="Ticker…"
+        onkeydown="if(event.key==='Enter')loadTicker()" />
+      <button class="btn-load" id="loadBtn" onclick="loadTicker()">LOAD</button>
+    </div>
+  </header>
+
+  <div class="limit-note">⏱ Free API tier: 25 requests/day. Data covers the last ~2 years of daily history.</div>
+
+  <div class="status loading" id="stLoad"><span class="spinner"></span> Fetching data…</div>
+  <div class="status error"   id="stErr"></div>
+  <div class="status info"    id="stInfo"></div>
+
+  <div class="panel" id="builderPanel" style="display:none">
+    <div class="panel-label">Build Your Pattern</div>
+    <div class="row">
+      <span class="row-label g">IF</span>
+      <span class="sep">On</span>
+      <div class="day-btns" id="triggerDays"></div>
+      <span class="sep">the stock</span>
+      <select id="patternSel"></select>
+    </div>
+    <div class="row">
+      <span class="row-label y">THEN</span>
+      <span class="sep">On</span>
+      <div class="day-btns" id="outcomeDays"></div>
+      <span class="sep">does it</span>
+      <select id="outcomeSel"></select>
+    </div>
+  </div>
+
+  <div class="result-panel" id="resultPanel" style="display:none">
+    <div class="panel-label" id="resultLabel">Result</div>
+    <div class="result-sentence" id="resultSentence"></div>
+    <div id="resultBody"></div>
+  </div>
+
+  <div class="matrix-wrap" id="matrixWrap" style="display:none">
+    <button class="matrix-toggle" id="matrixToggle" onclick="toggleMatrix()">
+      <span id="matrixTitle">Full Day-Pair Matrix</span>
+      <span id="matrixArrow">▼ Show</span>
+    </button>
+    <div class="matrix-body" id="matrixBody"></div>
+  </div>
+</div>
+
+<script>
+const API_KEY = '8NBU0M709TDUCOAF';
+const DAYS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WEEKDAYS = [1,2,3,4,5];
+const DAYNAMES = ['','Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+const PATTERNS = [
+  {id:'close_below_high', label:'Closed Below Daily High',       desc:'closed below its intraday high'},
+  {id:'close_above_low',  label:'Closed Above Daily Low',        desc:'closed above its intraday low'},
+  {id:'up_day',           label:'Was an Up Day (Close > Open)',  desc:'closed above its open'},
+  {id:'down_day',         label:'Was a Down Day (Close < Open)', desc:'closed below its open'},
+  {id:'gap_up',           label:'Gapped Up at Open',             desc:'opened above prior close'},
+  {id:'gap_down',         label:'Gapped Down at Open',           desc:'opened below prior close'},
+];
+
+const OUTCOMES = [
+  {id:'hits_new_high', label:'Hit a New High',            desc:"hits a new high (above trigger day's high)"},
+  {id:'hits_new_low',  label:'Hit a New Low',             desc:"hits a new low (below trigger day's low)"},
+  {id:'up_day',        label:'Close Up (Close > Open)',   desc:'closes above its open'},
+  {id:'down_day',      label:'Close Down (Close < Open)', desc:'closes below its open'},
+  {id:'gap_up',        label:'Gap Up at Open',            desc:'gaps up at the open'},
+  {id:'gap_down',      label:'Gap Down at Open',          desc:'gaps down at the open'},
+];
+
+let stockData    = null;
+let currentTicker = '';
+let triggerDay   = 1;
+let outcomeDay   = 2;
+let patternId    = 'close_below_high';
+let outcomeId    = 'hits_new_high';
+let matrixOpen   = false;
+
+function el(id){ return document.getElementById(id); }
+
+function showStatus(type, msg){
+  ['stLoad','stErr','stInfo'].forEach(id=>{
+    const e=el(id); e.className='status'; e.innerHTML='';
+  });
+  if(!type) return;
+  const map={loading:'stLoad',error:'stErr',info:'stInfo'};
+  const e=el(map[type]);
+  e.className='status '+type+' show';
+  if(type==='loading') e.innerHTML='<span class="spinner"></span>'+msg;
+  else e.textContent=msg;
+}
+
+async function fetchAlphaVantage(ticker){
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${API_KEY}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`HTTP ${res.status} — could not reach Alpha Vantage`);
+  const json = await res.json();
+
+  if(json['Note']) throw new Error('API rate limit reached (25/day). Please try again tomorrow.');
+  if(json['Information']) throw new Error('API rate limit reached (25/day). Please try again tomorrow.');
+  if(json['Error Message']) throw new Error(`Ticker "${ticker}" not found — check the symbol.`);
+
+  const series = json['Time Series (Daily)'];
+  if(!series) throw new Error('No data returned. Check the ticker symbol.');
+
+  const rows = Object.entries(series).map(([date, v]) => ({
+    date:  new Date(date),
+    open:  parseFloat(v['1. open']),
+    high:  parseFloat(v['2. high']),
+    low:   parseFloat(v['3. low']),
+    close: parseFloat(v['4. close']),
+  }));
+
+  // Sort ascending
+  rows.sort((a,b) => a.date - b.date);
+  return rows;
+}
+
+function fmt(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+async function loadTicker(){
+  const t = el('tickerInput').value.trim().toUpperCase();
+  if(!t) return;
+  currentTicker = t;
+  el('loadBtn').disabled = true;
+  el('builderPanel').style.display  = 'none';
+  el('resultPanel').style.display   = 'none';
+  el('matrixWrap').style.display    = 'none';
+  showStatus('loading', 'Fetching '+t+' from Alpha Vantage…');
+
+  try {
+    stockData = await fetchAlphaVantage(t);
+    showStatus('info',
+      t+' · '+stockData.length+' trading days · '+
+      fmt(stockData[0].date)+' – '+fmt(stockData[stockData.length-1].date));
+    el('builderPanel').style.display = 'block';
+    el('resultPanel').style.display  = 'block';
+    el('matrixWrap').style.display   = 'block';
+    render();
+  } catch(e){
+    showStatus('error','✕ '+e.message);
+  }
+  el('loadBtn').disabled = false;
+}
+
+function classify(day, prev){
+  return {
+    close_below_high: day.close < day.high,
+    close_above_low:  day.close > day.low,
+    up_day:           day.close > day.open,
+    down_day:         day.close < day.open,
+    gap_up:           prev ? day.open > prev.close : false,
+    gap_down:         prev ? day.open < prev.close : false,
+  };
+}
+
+function classifyOutcome(next, trigger){
+  return {
+    hits_new_high: next.high  > trigger.high,
+    hits_new_low:  next.low   < trigger.low,
+    up_day:        next.close > next.open,
+    down_day:      next.close < next.open,
+    gap_up:        next.open  > trigger.close,
+    gap_down:      next.open  < trigger.close,
+  };
+}
+
+function analyze(data, td, pat, od, out){
+  let base=0,matched=0,blTotal=0,blMatch=0;
+  for(let i=1;i<data.length-1;i++){
+    const day=data[i],prev=data[i-1],next=data[i+1];
+    if(day.date.getDay()!==td) continue;
+    if(next.date.getDay()!==od) continue;
+    const tr=classify(day,prev);
+    if(!tr[pat]) continue;
+    base++;
+    const oc=classifyOutcome(next,day);
+    if(oc[out]) matched++;
+  }
+  for(let i=1;i<data.length;i++){
+    const day=data[i],prev=data[i-1];
+    if(day.date.getDay()!==od) continue;
+    blTotal++;
+    const oc=classifyOutcome(day,prev);
+    if(oc[out]) blMatch++;
+  }
+  const prob     = base>0    ? (matched/base)*100    : null;
+  const baseline = blTotal>0 ? (blMatch/blTotal)*100 : null;
+  const edge     = (prob!==null&&baseline!==null) ? prob-baseline : null;
+  return {occurrences:base,matched,probability:prob,baseline,edge};
+}
+
+function buildSelects(){
+  const ps=el('patternSel'); ps.innerHTML='';
+  PATTERNS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.label;if(p.id===patternId)o.selected=true;ps.appendChild(o);});
+  ps.onchange=()=>{patternId=ps.value;render();};
+  const os=el('outcomeSel'); os.innerHTML='';
+  OUTCOMES.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.label;if(o.id===outcomeId)opt.selected=true;os.appendChild(opt);});
+  os.onchange=()=>{outcomeId=os.value;render();};
+}
+
+function buildDayBtns(){
+  ['triggerDays','outcomeDays'].forEach(containerId=>{
+    const isTrigger=containerId==='triggerDays';
+    const c=el(containerId); c.innerHTML='';
+    WEEKDAYS.forEach(d=>{
+      const b=document.createElement('button');
+      b.className='day-btn';
+      b.textContent=DAYS[d];
+      const active=isTrigger?d===triggerDay:d===outcomeDay;
+      if(active) b.classList.add(isTrigger?'ag':'ay');
+      b.onclick=()=>{
+        if(isTrigger){triggerDay=d;}else{outcomeDay=d;}
+        buildDayBtns(); render();
+      };
+      c.appendChild(b);
+    });
+  });
+}
+
+function render(){
+  if(!stockData) return;
+  buildSelects(); buildDayBtns(); renderResult(); renderMatrix();
+}
+
+function renderResult(){
+  const r  =analyze(stockData,triggerDay,patternId,outcomeDay,outcomeId);
+  const pat=PATTERNS.find(p=>p.id===patternId);
+  const out=OUTCOMES.find(o=>o.id===outcomeId);
+  const rp =el('resultPanel');
+
+  el('resultLabel').textContent='Result — '+currentTicker;
+  el('resultSentence').innerHTML=
+    `When <span class="hl">${currentTicker}</span> ${pat.desc} on `+
+    `<span class="gn">${DAYNAMES[triggerDay]}</span>, `+
+    `what's the probability it <span class="hl">${out.desc}</span> `+
+    `on <span class="yn">${DAYNAMES[outcomeDay]}</span>?`;
+
+  rp.className='result-panel';
+
+  if(r.occurrences===0){
+    el('resultBody').innerHTML='<div class="no-data">Not enough occurrences in this dataset for this combination.</div>';
+    return;
+  }
+
+  const prob     =r.probability;
+  const probColor=prob>65?'var(--green)':prob<35?'var(--red)':'var(--yellow)';
+  if(prob>60) rp.classList.add('high');
+  else if(prob<40) rp.classList.add('low');
+
+  const edge     =r.edge;
+  const edgeColor=edge>2?'var(--green)':edge<-2?'var(--red)':'var(--muted)';
+  const capped   =Math.max(-30,Math.min(30,edge));
+  const fillPct  =Math.abs(capped)/60*100;
+  const fillLeft =edge>=0?'50%':(((capped+30)/60)*100)+'%';
+
+  const warnHtml=r.occurrences<15
+    ?`<div class="warn">⚠ Small sample (${r.occurrences} occurrences). Results may not be statistically reliable.</div>`
+    :'';
+
+  el('resultBody').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="s-label">Probability</div>
+        <div class="s-value" style="color:${probColor}">${prob.toFixed(1)}%</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Baseline (${DAYS[outcomeDay]})</div>
+        <div class="s-value" style="color:var(--muted)">${r.baseline!==null?r.baseline.toFixed(1)+'%':'—'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Occurrences</div>
+        <div class="s-value">${r.occurrences}</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Hits</div>
+        <div class="s-value">${r.matched}</div>
+        <div class="s-sub">out of ${r.occurrences}</div>
+      </div>
+    </div>
+    <div class="edge-row">
+      <span class="edge-label">Edge vs baseline</span>
+      <div class="edge-track">
+        <div class="edge-mid"></div>
+        <div class="edge-fill" style="left:${fillLeft};width:${fillPct}%;background:${edgeColor}"></div>
+      </div>
+      <span class="edge-val" style="color:${edgeColor}">${edge>=0?'+':''}${edge.toFixed(1)}pp</span>
+    </div>
+    ${warnHtml}
+  `;
+}
+
+function renderMatrix(){
+  const pat=PATTERNS.find(p=>p.id===patternId);
+  const out=OUTCOMES.find(o=>o.id===outcomeId);
+  el('matrixTitle').textContent=`Day-Pair Matrix — ${pat.label} → ${out.label}`;
+
+  let html='<table><thead><tr><th>Trigger ↓ / Outcome →</th>';
+  WEEKDAYS.forEach(d=>{html+=`<th>${DAYS[d]}</th>`;});
+  html+='</tr></thead><tbody>';
+
+  WEEKDAYS.forEach(td=>{
+    html+=`<tr><td>${DAYS[td]}</td>`;
+    WEEKDAYS.forEach(od=>{
+      const r   =analyze(stockData,td,patternId,od,outcomeId);
+      const isSel=td===triggerDay&&od===outcomeDay;
+      const prob =r.probability;
+      let cls='c-none',txt='—';
+      if(prob!==null){
+        txt=prob.toFixed(0)+'%';
+        cls=prob>65?'c-high':prob<35?'c-low':'c-mid';
+      }
+      const selCls=isSel?' c-sel':'';
+      const nStr =r.occurrences>0?`<span class="n-count">n=${r.occurrences}</span>`:'';
+      html+=`<td class="${cls}${selCls}" onclick="selectCell(${td},${od})">${txt}${nStr}</td>`;
+    });
+    html+='</tr>';
+  });
+
+  html+='</tbody></table>';
+  html+='<div style="font-size:11px;color:var(--dim);margin-top:12px">Click any cell to jump to that combination. Green = higher probability, red = lower.</div>';
+  el('matrixBody').innerHTML=html;
+}
+
+function selectCell(td,od){
+  triggerDay=td; outcomeDay=od;
+  matrixOpen=false;
+  el('matrixBody').classList.remove('open');
+  el('matrixToggle').classList.remove('open');
+  el('matrixArrow').textContent='▼ Show';
+  render();
+  el('builderPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleMatrix(){
+  matrixOpen=!matrixOpen;
+  el('matrixBody').classList.toggle('open',matrixOpen);
+  el('matrixToggle').classList.toggle('open',matrixOpen);
+  el('matrixArrow').textContent=matrixOpen?'▲ Hide':'▼ Show';
+}
+
+// Auto-load VOO on start
+(async()=>{
+  showStatus('loading','Fetching VOO…');
+  try{
+    stockData=await fetchAlphaVantage('VOO');
+    currentTicker='VOO';
+    showStatus('info','VOO · '+stockData.length+' trading days · '+fmt(stockData[0].date)+' – '+fmt(stockData[stockData.length-1].date));
+    el('builderPanel').style.display='block';
+    el('resultPanel').style.display='block';
+    el('matrixWrap').style.display='block';
+    render();
+  }catch(e){
+    showStatus('error','✕ '+e.message);
+  }
+})();
+</script>
+</body>
+</html>
